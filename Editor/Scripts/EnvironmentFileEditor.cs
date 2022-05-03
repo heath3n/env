@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,6 +18,10 @@ namespace CandyCoded.env.Editor
         private Vector2 scrollPosition;
 
         private List<Tuple<string, string>> tempConfig = new List<Tuple<string, string>>();
+
+        private List<string> persistedVariables = new List<string>();
+
+        private List<bool> variablesToIncludeInBuild = new List<bool>();
 
         private void Update()
         {
@@ -76,10 +81,11 @@ namespace CandyCoded.env.Editor
 
                 GUILayout.BeginHorizontal();
 
-                var key = GUILayout.TextField(tempConfig[i].Item1, GUILayout.ExpandWidth(false),
-                    GUILayout.Width(position.width * 0.25f));
+                var includeInBuild = GUILayout.Toggle(variablesToIncludeInBuild[i], "", GUILayout.ExpandWidth(false));
 
-                var value = GUILayout.TextField(tempConfig[i].Item2, GUILayout.ExpandWidth(true));
+                var key = GUILayout.TextField(tempConfig[i].Item1, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(120));
+
+                var value = GUILayout.TextField(tempConfig[i].Item2, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(160));
 
                 if (tempConfig.Count == 1)
                 {
@@ -92,6 +98,7 @@ namespace CandyCoded.env.Editor
                 {
 
                     tempConfig.RemoveAt(i);
+                    variablesToIncludeInBuild.RemoveAt(i);
 
                     continue;
 
@@ -108,6 +115,7 @@ namespace CandyCoded.env.Editor
                 {
 
                     tempConfig.Insert(i + 1, new Tuple<string, string>("", ""));
+                    variablesToIncludeInBuild.Insert(i + 1, false);
 
                     continue;
 
@@ -122,6 +130,13 @@ namespace CandyCoded.env.Editor
 
                 }
 
+                if (includeInBuild != variablesToIncludeInBuild[i])
+                {
+
+                    variablesToIncludeInBuild[i] = includeInBuild;
+
+                }
+
             }
 
             if (GUILayout.Button("Save Changes"))
@@ -132,6 +147,11 @@ namespace CandyCoded.env.Editor
 
                     File.WriteAllText(env.editorFilePath, env.SerializeEnvironmentDictionary(
                         tempConfig.ToDictionary(item => item.Item1, item => item.Item2)));
+                    File.WriteAllText(env.persistedFilePath, env.SerializeEnvironmentDictionary(
+                        tempConfig
+                            .Select((v, i) => variablesToIncludeInBuild[i] ? v : null)
+                            .Where(v => v != null)
+                            .ToDictionary(item => item.Item1, item => item.Item2)));
 
                 }
                 catch (Exception err)
@@ -157,6 +177,7 @@ namespace CandyCoded.env.Editor
                 {
 
                     File.Delete(env.editorFilePath);
+                    File.Delete(env.persistedFilePath);
 
                 }
 
@@ -166,7 +187,7 @@ namespace CandyCoded.env.Editor
 
         }
 
-        [MenuItem("Window/CandyCoded/Environment File Editor")]
+        [MenuItem("Window/DevTools/Environment File Editor")]
         public static void ShowWindow()
         {
 
@@ -180,8 +201,13 @@ namespace CandyCoded.env.Editor
             if (File.Exists(env.editorFilePath))
             {
 
+                persistedVariables = env.ParseEnvironmentFile(File.ReadAllText(env.persistedFilePath, Encoding.UTF8)).Select(item => item.Key)
+                        .ToList();
                 tempConfig = env.ParseEnvironmentFile().Select(item => new Tuple<string, string>(item.Key, item.Value))
                     .ToList();
+                for (int i = 0; i < tempConfig.Count; i++) {
+                    variablesToIncludeInBuild.Add(persistedVariables.Contains(tempConfig[i].Item1));
+                }
 
             }
 

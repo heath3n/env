@@ -44,7 +44,7 @@ namespace CandyCoded.env.Editor
 
             }
 
-            FileUtil.CopyFileOrDirectory(env.editorFilePath, env.runtimeFilePath);
+            FileUtil.CopyFileOrDirectory(env.persistedFilePath, env.runtimeFilePath);
 
         }
 

@@ -15,17 +15,21 @@ namespace CandyCoded.env
 
         public const string filename = "env";
 
+        public const string persistedFilename = "env.persisted";
+
         public static readonly string editorFilePath = Path.Combine(Application.dataPath, "../", $".{filename}");
+
+        public static readonly string persistedFilePath = Path.Combine(Application.dataPath, "../", $".{persistedFilename}");
 
         public static readonly string resourcesDirPath = Path.Combine(Application.dataPath, "Resources");
 
-        public static readonly string runtimeFilePath = Path.Combine(resourcesDirPath, $"{filename}.txt");
+        public static readonly string runtimeFilePath = Path.Combine(resourcesDirPath, $"{persistedFilename}.txt");
 
         private static Dictionary<string, string> _variables;
 
         public static Dictionary<string, string> variables {
             get {
-                if (_variables != null) {
+                if (_variables == null) {
                     _variables = ParseEnvironmentFile();
                 }
                 return _variables;
@@ -64,7 +68,7 @@ namespace CandyCoded.env
 #if UNITY_EDITOR
             return ParseEnvironmentFile(File.ReadAllText(editorFilePath, Encoding.UTF8));
 #else
-            return ParseEnvironmentFile(((TextAsset)Resources.Load(filename)).text);
+            return ParseEnvironmentFile(((TextAsset)Resources.Load(persistedFilename)).text);
 #endif
 
         }
